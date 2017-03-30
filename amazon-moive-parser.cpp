@@ -15,7 +15,7 @@
 const std::map<std::string, std::string>::value_type split(const std::string& src, const std::string& delim)
 {
 	std::string::size_type start = 0, end = src.find(delim);
-	if (end == -1)
+	if (end == std::string::npos)
 	{
 		return std::map<std::string, std::string>::value_type(std::string(), src);
 	}
@@ -25,7 +25,7 @@ const std::map<std::string, std::string>::value_type split(const std::string& sr
 bool replace(std::string& src, const std::string& target, const std::string& dst)
 {
 	std::string::size_type start = src.find(target);
-	if (start == -1)
+	if (start == std::string::npos)
 	{
 		return false;
 	}
@@ -34,31 +34,16 @@ bool replace(std::string& src, const std::string& target, const std::string& dst
 	return true;
 }
 
-bool find(const std::vector<std::string>& vec, const std::string& target)
-{
-	for (std::vector<std::string>::const_iterator it = vec.begin();
-		 it != vec.end();
-		 it++)
-	{
-		if (*it == target)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 void print(const std::map<std::string, std::string>& value_buffer,
-		   const std::vector<std::map<std::string, std::string>::value_type> NAMES,
+		   const std::vector<std::string>& NAMES,
 		   std::ostream& os)
 {
-	for (std::vector<std::map<std::string, std::string>::value_type>::const_iterator it = NAMES.begin();
-			 it != NAMES.end();
-			 it++)
+	for (auto& name : NAMES)
 	{
-		std::map<std::string, std::string>::const_iterator ivalue = value_buffer.find(it->first);
+		auto ivalue = value_buffer.find(name);
 		if (ivalue == value_buffer.end())
 		{
+			os << "\t";
 			continue;
 		}
 		os << ivalue->second << "\t";
@@ -67,7 +52,7 @@ void print(const std::map<std::string, std::string>& value_buffer,
 }
 
 /**
- * ./movie infilename outfilename
+ * ./movie <infilename> <outfilename>
  */
 int main(int argc, char** argv)
 {
@@ -96,36 +81,35 @@ int main(int argc, char** argv)
 	}
 
 	string one_line, name, value, last_name;
-	const vector<map<string, string>::value_type> NAMES = {
-			map<string, string>::value_type("product/productId", string()),
-			map<string, string>::value_type("review/userId", string()),
-			map<string, string>::value_type("review/profileName", string()),
-			map<string, string>::value_type("review/helpfulness", string()),
-			map<string, string>::value_type("review/score", string()),
-			map<string, string>::value_type("review/time", string()),
-			map<string, string>::value_type("review/summary", string()),
-			map<string, string>::value_type("review/text", string())
+	const vector<string> NAMES = {
+			"product/productId",
+			"review/userId",
+			"review/profileName",
+			"review/helpfulness",
+			"review/score",
+			"review/time",
+			"review/summary",
+			"review/text",
 	};
-	map<string, string> value_buffer(NAMES.begin(), NAMES.end());
+	map<string, string> value_buffer;
 	unsigned int line_no = 0;
 	while(!fin.eof())
 	{
-		getline(fin, one_line); line_no++;
-		const map<string, string>::value_type name_value = split(one_line, ": ");
-		name = name_value.first;
-		value = name_value.second;
-		replace(value, "\t", "\\t");
-		replace(value, "\r", "\\r");
+		getline(fin, one_line); ++line_no;
+		auto name_value = split(one_line, ": ");
+		name = name_value.first;		value = name_value.second;
+		replace(value, "\t", "\\t");	replace(value, "\r", "\\r");
 
-		if (name == NAMES[0].first)
+		if (name == NAMES[0] && !value_buffer.empty())
 		{
 			print(value_buffer, NAMES, fout);
+			value_buffer.clear();
 		}
 
 		if (name == string())
-		{// split by '\n' incorrectly
-			value_buffer[last_name] += "\\n" + value;
-			cout << line_no << ": ";print(value_buffer, NAMES, cout);
+		{ // split by '\n' incorrectly
+			value_buffer[last_name] += "\\n" + value; // append value
+//			cout << line_no << ": ";	print(value_buffer, NAMES, cout); // show broken line on the console
 		}
 		else
 		{
@@ -135,5 +119,6 @@ int main(int argc, char** argv)
 	}
 
 	fin.close();
+	fout.close();
 	return 0;
 }
